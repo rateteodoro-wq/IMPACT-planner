@@ -158,6 +158,14 @@
                         placeholder="Ex: Escrever Documentação" required autocomplete="off">
                 </div>
 
+                <!-- NEW: Horário Fixo -->
+                <div class="w-full md:w-32 relative">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Hora Fixa
+                        <span class="text-[9px] lowercase font-normal">(opcional)</span></label>
+                    <input type="time" id="input-fixed-time"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm text-slate-600 cursor-pointer">
+                </div>
+
                 <!-- Duração -->
                 <div class="w-full md:w-32 relative">
                     <label
@@ -168,7 +176,7 @@
                 </div>
 
                 <!-- Energia -->
-                <div class="w-full md:w-56 relative">
+                <div class="w-full md:w-48 xl:w-56 relative">
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Custo de
                         Energia</label>
                     <div class="relative">
@@ -289,8 +297,17 @@
 
     </div>
 
+    <!-- Global Tooltip Container -->
+    <div id="global-tooltip"
+        class="fixed z-[100] opacity-0 pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200 bg-slate-800 text-white text-xs p-2.5 rounded-lg shadow-xl border border-slate-700 break-words whitespace-normal text-left font-medium w-max max-w-[220px]">
+        <span id="tooltip-text"></span>
+        <div
+            class="absolute w-2.5 h-2.5 bg-slate-800 border-b border-r border-slate-700 transform rotate-45 -bottom-1.5 left-1/2 -translate-x-1/2">
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[110] flex flex-col gap-3 pointer-events-none"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -309,6 +326,7 @@
 
             const form = document.getElementById('add-task-form');
             const inputTask = document.getElementById('input-task');
+            const inputFixedTime = document.getElementById('input-fixed-time');
             const inputDuration = document.getElementById('input-duration');
             const inputEnergy = document.getElementById('input-energy');
             const btnClear = document.getElementById('btn-clear');
@@ -473,13 +491,17 @@
                             ? `<span class="bg-black/10 px-1.5 py-0.5 rounded-sm text-inherit font-bold text-[9px] backdrop-blur-sm -mt-0.5">${block.batteryAfter}% ⚡</span>`
                             : '';
 
+                        // Determinar se o título é editável (buffer não é)
+                        const titleEditableAttr = block.isBuffer ? '' : `onclick="editTaskTitle(${block.id}, this)"`;
+                        const cursorClass = block.isBuffer ? 'cursor-default' : 'cursor-text';
+
                         blocksContent += `
-               <div class="absolute top-6 bottom-6 rounded-xl p-3 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:z-20 hover:shadow-xl group cursor-default ${colorClass}" 
-                    style="left: ${startPct}%; width: calc(${widthPct}% - 4px);">
+               <div class="absolute top-6 bottom-6 rounded-xl p-3 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:z-20 hover:shadow-xl ${colorClass}" 
+                    style="left: ${startPct}%; width: calc(${widthPct}% - 4px);" data-task-id="${block.id}" data-task-title="${block.title.replace(/"/g, '&quot;')}">
                  
-                 <div class="w-full flex justify-between items-start mb-1 overflow-hidden">
+                 <div class="w-full flex justify-between items-start mb-1 pointer-events-none">
                    <div class="flex items-center gap-1.5">
-                     <span class="text-[9px] font-bold uppercase tracking-widest opacity-80 bg-white/20 px-1.5 py-0.5 rounded-sm">
+                     <span class="text-[9px] font-bold uppercase tracking-widest opacity-80 bg-white/20 px-1.5 py-0.5 rounded-sm flex-shrink-0">
                        ${minsAbsToTime(block.startMinsAbs)}
                      </span>
                      <span class="text-[9px] font-bold uppercase tracking-widest opacity-60 hidden md:inline-block">${labelTag}</span>
@@ -487,12 +509,14 @@
                    ${batteryTag}
                  </div>
                  
-                 <h3 class="${block.isBuffer ? 'text-xs opacity-90' : 'text-sm'} font-semibold leading-tight line-clamp-2 mt-1 mb-2">
-                   ${block.title}
-                 </h3>
+                 <div class="relative w-full mt-1 mb-2">
+                    <h3 class="${block.isBuffer ? 'text-xs opacity-90' : 'text-sm hover:underline decoration-white/50'} font-semibold leading-tight line-clamp-2 ${cursorClass}" ${titleEditableAttr} title="Clique para editar">
+                        ${block.title}
+                    </h3>
+                 </div>
                  
-                 <div class="mt-auto text-[11px] font-medium opacity-90 flex items-center gap-1.5">
-                   <svg class="w-3 h-3 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 <div class="mt-auto text-[11px] font-medium opacity-90 flex items-center gap-1.5 pointer-events-none">
+                   <svg class="w-3 h-3 opacity-75 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     ${formatMinsRelToDurationText(block.durMins)}
                  </div>
                </div>
@@ -516,8 +540,52 @@
             }
 
             // ----------------------------------------------------
-            // 6. EVENTOS DE RESIZE/CONFIGURAR O DIA
+            // 6. EVENTOS DE RESIZE/CONFIGURAR O DIA E EDIÇÃO IN-LINE
             // ----------------------------------------------------
+
+            // Função Exposta globalmente para ser chamada pelo HTML injetado
+            window.editTaskTitle = function (id, element) {
+                // Impede múltiplos inputs
+                if (element.querySelector('input')) return;
+
+                const task = globalBlocks.find(b => b.id === id);
+                if (!task) return;
+
+                const currentText = task.title;
+
+                // Transforma o H3 em um input
+                const inputHtml = `<input type="text" class="w-full bg-white/20 text-inherit text-sm font-semibold p-1 -ml-1 rounded border border-white/40 focus:outline-none focus:bg-white/90 focus:text-slate-800 placeholder-white/50" value="${currentText.replace(/"/g, '&quot;')}" />`;
+                element.innerHTML = inputHtml;
+
+                const inputEl = element.querySelector('input');
+                inputEl.focus();
+
+                // Mover cursor para o final
+                inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+
+                // Salvar ao perder o foco ou apertar Enter
+                const saveEdit = () => {
+                    const newText = inputEl.value.trim();
+                    if (newText) {
+                        task.title = newText;
+                        showToast('Tarefa atualizada.', 'success');
+                    }
+                    renderGantt(); // Re-renderiza tudo, destruindo o input
+                };
+
+                inputEl.addEventListener('blur', saveEdit);
+                inputEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        inputEl.blur(); // Dispara o blur que já chama saveEdit
+                    }
+                    if (e.key === 'Escape') {
+                        // Cancela edição
+                        renderGantt();
+                    }
+                });
+            };
+
             function applyReset(isSilent = false) {
                 config = getConfigs();
 
@@ -554,6 +622,7 @@
                 const title = inputTask.value.trim();
                 const durHours = parseFloat(inputDuration.value);
                 const energyType = inputEnergy.value;
+                const fixedTimeVal = inputFixedTime.value; // Valor do novo input de horário fixo
 
                 // Validação Base
                 if (!title || isNaN(durHours) || durHours <= 0) {
@@ -562,7 +631,24 @@
                 }
 
                 const durMins = durHours * 60;
-                const taskEndAbs = currentCursorMins + durMins;
+
+                // == NOVA LÓGICA DE AGENDAMENTO COM HORÁRIO FIXO ==
+                let startMinsAbsForThisTask = currentCursorMins;
+
+                if (fixedTimeVal) {
+                    const [fh, fm] = fixedTimeVal.split(':').map(Number);
+                    const fixedMinsAbs = (fh * 60) + fm;
+
+                    if (fixedMinsAbs < config.startMins) {
+                        showToast(`Horário fixo não pode ser anterior ao início do seu dia (${minsAbsToTime(config.startMins)}).`, 'error');
+                        return;
+                    }
+
+                    // A tarefa assume a posição exata do horário fixo
+                    startMinsAbsForThisTask = fixedMinsAbs;
+                }
+
+                const taskEndAbs = startMinsAbsForThisTask + durMins;
 
                 // Regra: Hard Stop 22h00
                 if (taskEndAbs > END_HOUR * 60) {
@@ -573,11 +659,11 @@
                 // Regra: Domingo Family Lockdown 13h00 (SOMENTE SE FOR DOMINGO)
                 if (config.isSunday) {
                     const lockdownMins = SUNDAY_LOCKDOWN_HOUR * 60;
-                    if (currentCursorMins < lockdownMins && taskEndAbs > lockdownMins) {
+                    if (startMinsAbsForThisTask < lockdownMins && taskEndAbs > lockdownMins) {
                         showToast('Family Lockdown! Essa tarefa invade o horário protegido para a família.', 'error');
                         return;
                     }
-                    if (currentCursorMins >= lockdownMins) {
+                    if (startMinsAbsForThisTask >= lockdownMins) {
                         showToast('Family Lockdown ativado às 13:00. É hora de desconectar.', 'error');
                         return;
                     }
@@ -602,7 +688,7 @@
                 const newTask = {
                     id: Date.now(),
                     title: title,
-                    startMinsAbs: currentCursorMins,
+                    startMinsAbs: startMinsAbsForThisTask,
                     durMins: durMins,
                     energy: energyType,
                     batteryAfter: currentBattery,
@@ -611,32 +697,39 @@
                 };
 
                 globalBlocks.push(newTask);
-                currentCursorMins = taskEndAbs; // Avança o cursor
+
+                // O CurrentCursorMins avança baseado no término LÁ NA FRENTE
+                // Se o usuário usou um horário fixo no futuro, o cursor avança para o fim daquela tarefa
+                // Se usou um evento atrasado, mantemos a fronteira futura inalterada para as próximas fluírem corretamente.
+                currentCursorMins = Math.max(currentCursorMins, taskEndAbs);
 
                 // Regra: Buffer de Recuperação Física
                 if (energyType === 'alta-fisica') {
-                    let bufferEndAbs = currentCursorMins + 30;
+                    // Buffer sempre segue a própria tarefa fisicamente exigente
+                    let bufferStartAbs = taskEndAbs;
+                    let bufferEndAbs = bufferStartAbs + 30;
                     let bufferDur = 30;
 
                     // Truncar buffer se colidir com os Hard Stops ou Lockdown
-                    if (config.isSunday && currentCursorMins < SUNDAY_LOCKDOWN_HOUR * 60) {
+                    if (config.isSunday && bufferStartAbs < SUNDAY_LOCKDOWN_HOUR * 60) {
                         if (bufferEndAbs > SUNDAY_LOCKDOWN_HOUR * 60) {
-                            bufferDur = (SUNDAY_LOCKDOWN_HOUR * 60) - currentCursorMins;
+                            bufferDur = (SUNDAY_LOCKDOWN_HOUR * 60) - bufferStartAbs;
                         }
                     } else if (bufferEndAbs > END_HOUR * 60) {
-                        bufferDur = (END_HOUR * 60) - currentCursorMins;
+                        bufferDur = (END_HOUR * 60) - bufferStartAbs;
                     }
 
                     if (bufferDur > 0) {
                         globalBlocks.push({
                             id: Date.now() + 1,
                             title: 'Descanso Obrigatório',
-                            startMinsAbs: currentCursorMins,
+                            startMinsAbs: bufferStartAbs,
                             durMins: bufferDur,
                             type: 'buffer',
                             isBuffer: true
                         });
-                        currentCursorMins += bufferDur; // Avança cursor com o buffer
+                        // Assim como a tarefa, o buffer também pode empurrar a fronteira fluida global
+                        currentCursorMins = Math.max(currentCursorMins, bufferStartAbs + bufferDur);
                     }
                 }
 
@@ -646,17 +739,61 @@
 
                 // Reset Formulário
                 inputTask.value = '';
+                inputFixedTime.value = '';
                 inputTask.focus();
             });
 
             // ----------------------------------------------------
-            // 8. EVENTOS (CLEAR DIA)
+            // 8. EVENTOS (CLEAR DIA) E TOOLTIP GLOBAL
             // ----------------------------------------------------
             btnClear.addEventListener('click', () => {
                 if (globalBlocks.length === 0 && currentBattery === 100) return;
 
                 applyReset(true); // silent
                 showToast('O Gantt foi zerado. Você recuperou 100% de energia!', 'info');
+            });
+
+            // Lógica do Tooltip Flutuante Dinâmico
+            const globalTooltip = document.getElementById('global-tooltip');
+            const tooltipText = document.getElementById('tooltip-text');
+            let tooltipTimeout;
+
+            timelineBlocks.addEventListener('mouseover', (e) => {
+                const blockDiv = e.target.closest('[data-task-id]');
+                if (!blockDiv) return;
+
+                const text = blockDiv.getAttribute('data-task-title');
+                if (!text) return;
+
+                // Se está editando in-line, não mostra o tooltip
+                if (blockDiv.querySelector('input')) {
+                    globalTooltip.classList.add('opacity-0');
+                    return;
+                }
+
+                tooltipText.textContent = text;
+
+                clearTimeout(tooltipTimeout);
+
+                const rect = blockDiv.getBoundingClientRect();
+
+                // Posicionar no meio do horizontal (-translate-x-1/2 já resolve o X, e -translate-y-full resolve o Y)
+                // rect.top já considera o scroll vertical do window.
+                const topP = rect.top - 8; // 8px de respiro colado ao topo da barra
+                const leftP = rect.left + (rect.width / 2);
+
+                globalTooltip.style.top = `${topP}px`;
+                globalTooltip.style.left = `${leftP}px`;
+                globalTooltip.classList.remove('opacity-0');
+            });
+
+            timelineBlocks.addEventListener('mouseout', (e) => {
+                const blockDiv = e.target.closest('[data-task-id]');
+                if (!blockDiv) return;
+
+                tooltipTimeout = setTimeout(() => {
+                    globalTooltip.classList.add('opacity-0');
+                }, 100);
             });
 
             // Inicializar Vazio com os dados padrão
@@ -666,3 +803,4 @@
 </body>
 
 </html>
+ 
